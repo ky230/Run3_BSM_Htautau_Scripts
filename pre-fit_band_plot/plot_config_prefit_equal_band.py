@@ -69,8 +69,8 @@ for m in masses:
 
 default_samples = {
     'Data': ['Data', ['data_obs'], 1],
-    'Signal_bbH': ['200*bbH-100', ['bbH_signal_100'], 200],
-    'Signal_ggH': ['200*ggH-100', ['ggH_signal_100'], 200],
+    'Signal_bbH_1000': ['bbH-1000', ['bbH_signal_1000'], 1],
+    'Signal_ggH_1000': ['ggH-1000', ['ggH_signal_1000'], 1],
     'Top': ['Top', ['ttbar'], 1],
     "DY-Jets-tt": ['DY-Jets-#tau#tau', ["Zto2L_tt"], 1],
     "DY-Jets-ll": ['DY-Jets-ll', ["Zto2L_ll"], 1],
@@ -90,6 +90,8 @@ default_sample_colors = {
     'other': 920,
     "200*bbH-100": 416,
     "200*ggH-100": 632,
+    "bbH-1000": 416,
+    "ggH-1000": 632,
 }
 
 default_regions = ["btag","nob"]
@@ -99,8 +101,6 @@ default_regions = ["btag","nob"]
 
 pnn_samples = {
     'Data': ['Data', ['data_obs'], 1],
-    # 'Signal_bbH': [f'200*bbH-{mass}', [f'bbH_signal_{mass}'], 200],
-    # 'Signal_ggH': [f'200*ggH-{mass}', [f'ggH_signal_{mass}'], 200],
     'Top': ['Top', ['ttbar'], 1],
     "DY-Jets-tt": ['DY-Jets-#tau#tau', ["Zto2L_tt"], 1],
     "DY-Jets-ll": ['DY-Jets-ll', ["Zto2L_ll"], 1],
@@ -114,7 +114,7 @@ for m in masses:
 
 
 
-pnn_stacking_order = ['other','diboson','fakes','DY-Jets-tt' ,'DY-Jets-ll' , 'Top',  ]
+pnn_stacking_order = [ 'Top','other' , 'diboson','fakes','DY-Jets-tt' ,'DY-Jets-ll' ,  ]
 
 pnn_sample_colors = {
     'fakes': 901,
@@ -153,10 +153,53 @@ def get_hist(f, region, hist_name):
         return None
     return hist.Clone()
 
-def get_syst_histos(f, region, process, n_bins):
+#new function 
+def rebin_hist_to_same_bins(original_hist):
+    """
+    将输入的直方图转换为0到1范围内的等宽binning,保持与原直方图相同的bin数量
+    并按顺序将原始数据填入新直方图
+    
+    参数:
+        original_hist: 输入的ROOT.TH1直方图对象
+        
+    返回:
+        新的ROOT.TH1直方图对象,具有0到1的等宽binning和相同的bin数量
+    """
+    # 获取原始直方图的bin数量
+    original_num_bins = original_hist.GetNbinsX()
+    
+    # 创建新的直方图,范围从0到1,保持与原直方图相同的bin数量
+    new_hist = ROOT.TH1F(
+        f"rebinned_{original_hist.GetName()}",
+        f"Rebinned {original_hist.GetTitle()};x;Entries",
+        original_num_bins,  # 与原始直方图相同的bin数量
+        0.0,                # x最小值
+        1.0                 # x最大值
+    )
+    
+    # 按顺序遍历原始直方图的每个bin,并填入新直方图的对应bin
+    for bin_idx in range(1, original_num_bins + 1):  # ROOT的bin索引从1开始
+        # 获取原始bin的内容和误差
+        bin_content = original_hist.GetBinContent(bin_idx)
+        bin_error = original_hist.GetBinError(bin_idx)
+        
+        # 直接将内容填充到新直方图的对应序号bin中
+        new_hist.SetBinContent(bin_idx, bin_content)
+        new_hist.SetBinError(bin_idx, bin_error)
+    
+    # 处理overflow和underflow bins（如果需要）
+    new_hist.SetBinContent(0, original_hist.GetBinContent(0))
+    new_hist.SetBinError(0, original_hist.GetBinError(0))
+    new_hist.SetBinContent(original_num_bins + 1, original_hist.GetBinContent(original_num_bins + 1))
+    new_hist.SetBinError(original_num_bins + 1, original_hist.GetBinError(original_num_bins + 1))
+    
+    return new_hist
+
+def get_syst_histos(f, region, process, n_bins, PNN = False):
     
     syst_blacklist = [
         "fitUnc", 
+        "jesUncTotal"
         # "btagUncbc_correlated_",     
         # "btagUncbc_uncorrelated_",
         # "btagUnclight_correlated_",
@@ -214,7 +257,11 @@ def get_syst_histos(f, region, process, n_bins):
         h_up = f.Get(f"{region}/{process}__{base}Up")
         h_down = f.Get(f"{region}/{process}__{base}Down")
         nominal = get_hist(f, region, process)
-        
+
+        if PNN:
+            h_up = rebin_hist_to_same_bins(h_up)
+            h_down = rebin_hist_to_same_bins(h_down)
+            nominal = rebin_hist_to_same_bins(nominal)       
         if not h_up or not h_down or not nominal:
             print(f"[WARNING] Missing histograms for pair: {base}Up/Down")
             continue
@@ -283,13 +330,15 @@ def get_syst_histos(f, region, process, n_bins):
     
     return syst_up, syst_down
 
-def total_uncertainty(f, region, background_processes, n_bins, statonly=False):
+def total_uncertainty(f, region, background_processes, n_bins, statonly=False, PNN=False):
     tot_up = [0.]*n_bins
     tot_down = [0.]*n_bins
     print(f"[INFO] Total background processes to compute uncertainty: {len(background_processes)}")
 
     for proc in background_processes:
         h_nom = get_hist(f, region, proc)
+        if PNN:
+            h_nom = rebin_hist_to_same_bins(h_nom)
         if not h_nom:
             print(f"[WARNING] Cannot get nominal hist for {proc}")
             continue
@@ -303,7 +352,7 @@ def total_uncertainty(f, region, background_processes, n_bins, statonly=False):
 
         print(f"This is {proc} in {region}: ")
         print("stat^2:",stat2)
-        syst_up2, syst_down2 = get_syst_histos(f, region, proc, n_bins) #这一步是得到某个过程,所有的系统误差
+        syst_up2, syst_down2 = get_syst_histos(f, region, proc, n_bins, PNN) #这一步是得到某个过程,所有的系统误差
 
         syst_factor = 0 if statonly else 1  # Multiply syst terms by this factor
         print(f"[DEBUG] proc={proc}, statonly={statonly}, syst_factor={syst_factor}")
@@ -330,7 +379,7 @@ def total_uncertainty(f, region, background_processes, n_bins, statonly=False):
         print("\n")
     return [math.sqrt(u) for u in tot_up], [math.sqrt(d) for d in tot_down]
 
-def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=False,statonly=False, xy_log_scale=False,PNN=False):
+def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=False,statonly=False, xy_log_scale=False,PNN=False, blind=False):
     var, title = plot_vars[var_key]
     print(f"\n[INFO] Processing file: {file_path}")
     print(f"[INFO] Region: {region}")
@@ -342,6 +391,9 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
         return
 
     data_hist = get_hist(f, region, samples['Data'][1][0])
+    if PNN:
+        data_hist = rebin_hist_to_same_bins(data_hist)
+    
     if not data_hist:
         print(f"[ERROR] Data histogram missing: {region}/{samples['Data'][1][0]}")
         return
@@ -349,6 +401,8 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
     nbins = data_hist.GetNbinsX()
     xmin = data_hist.GetBinLowEdge(1)
     xmax = data_hist.GetBinLowEdge(nbins + 1)
+    if xy_log_scale:
+        data_hist.GetXaxis().SetRangeUser(50, 5000)
 
     c = ROOT.TCanvas(f"c_{region}_{'xylog' if xy_log_scale else 'log' if log_scale else 'lin'}","", 900, 900)
     pad1 = ROOT.TPad(f"pad1","{region}",0,0.25,1,1)
@@ -358,9 +412,17 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
     pad2.SetBottomMargin(0.35)
     pad1.Draw()
     pad2.Draw()
-
+    check = array('d', [data_hist.GetBinLowEdge(i+1) for i in range(nbins)] + [xmax])
+    print(check, "hi")
     stack = ROOT.THStack()
-    total_mc = ROOT.TH1F("total_mc", "", nbins, array('d', [data_hist.GetBinLowEdge(i+1) for i in range(nbins)] + [xmax]))
+    total_mc = data_hist.Clone()
+    for i in range(1, nbins+1):
+        total_mc.SetBinContent(i, 0)
+        total_mc.SetBinError(i, 0)
+    total_mc.SetName("total_mc")
+    total_mc.SetTitle("")
+    print("data_hist first bin, ", data_hist.GetBinContent(0), data_hist.GetBinContent(1) )
+    #total_mc = ROOT.TH1F("total_mc", "", nbins, array('d', [data_hist.GetBinLowEdge(i+1) for i in range(nbins)] + [xmax]))
     bkg_histos = []
 
 
@@ -370,6 +432,8 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
         h_total.Reset()
         for sample in samples[sname][1]:
             h = get_hist(f, region, sample)
+            if PNN:
+                h = rebin_hist_to_same_bins(h)
             if not h:
                 print(f"[WARNING] Missing histogram: {region}/{sample}")
                 continue
@@ -381,7 +445,7 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
         bkg_histos.append(h_total)
         total_mc.Add(h_total)
     print("Background processes being processed:", [samples[x][1][0] for x in stacking_order])
-    up_errs, down_errs = total_uncertainty(f, region, [samples[x][1][0] for x in stacking_order], nbins, statonly=statonly)
+    up_errs, down_errs = total_uncertainty(f, region, [samples[x][1][0] for x in stacking_order], nbins, statonly=statonly, PNN=PNN)
 
     print("\n")
     print(f"[INFO] Finishing processes of all Background of {var_key}_{'xy_Log' if xy_log_scale else 'Log' if log_scale else 'Lin'}.png in {region}  region ")
@@ -415,6 +479,7 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
       pad1.SetLogy()
 
 ######## draw 
+
     stack.Draw("hist")
     set_top_plot_general_style(stack,log_scale,xy_log_scale)
     band.Draw("e2 same")
@@ -424,7 +489,7 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
     # 将 data_hist 转换为 TGraph（without error）
     n_bins = data_hist.GetNbinsX()
     g_data = ROOT.TGraph()
-    point_index = 0  # 新的索引，仅对有效点增加
+    point_index = 0  
 
     for i in range(n_bins):
         x = data_hist.GetBinCenter(i + 1)
@@ -432,19 +497,24 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
 
         if y == 0:
             continue  # 跳过内容为 0 的点
-
+        if blind:
+                if "mt_tot" in var_key:
+                    skip = 7
+                else:
+                    skip = 5
+                if i >= skip:
+                    continue
         g_data.SetPoint(point_index, x, y)
         point_index += 1
 
 
 
-    # 样式设置
     g_data.SetMarkerStyle(20)
     g_data.SetMarkerSize(1.7)
     g_data.SetMarkerColor(ROOT.kBlack)
     g_data.SetLineWidth(0)
 
-    # 替换 Draw
+
     g_data.Draw("P same")
 
 
@@ -455,19 +525,19 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
 
     if xy_log_scale:
             min_non_zero = min([h.GetMinimum(0) for h in [data_hist, total_mc] if h.GetMinimum(0) > 0])
-            stack.SetMinimum(min_non_zero * 0.1)
+            stack.SetMinimum(min_non_zero * 0.01)
             stack.SetMaximum(current_max * 100)
             stack.GetXaxis().SetLabelSize(0)
     elif log_scale:
 
         min_non_zero = min([h.GetMinimum(0) for h in [data_hist, total_mc] if h.GetMinimum(0) > 0])
-        stack.SetMinimum(min_non_zero * 0.1)
+        stack.SetMinimum(min_non_zero * 0.01)
         stack.SetMaximum(current_max * 100)
         stack.GetXaxis().SetLabelSize(0)
     else:
-        stack.GetYaxis().SetNoExponent(False)         # 打开科学计数法
+        stack.GetYaxis().SetNoExponent(False)         
         stack.GetYaxis().SetMoreLogLabels(False)
-        ROOT.TGaxis.SetMaxDigits(3)                 # 关键！超3位就科学计数法
+        ROOT.TGaxis.SetMaxDigits(3)                 
         current_max = stack.GetMaximum()
         stack.SetMaximum(current_max * 1.74)
 
@@ -479,6 +549,12 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
             for s in [f'Signal_bbH_{m}', f'Signal_ggH_{m}']:
                 print(f"[INFO] Loading signal: {s}")
                 sig_hist = get_hist(f, region, samples[s][1][0])
+                print(samples[s][1][0], "check signal")
+                print(sig_hist)
+                if sig_hist:
+                    sig_hist = rebin_hist_to_same_bins(sig_hist)
+                else:
+                    continue
                 if sig_hist:
                     print(f"   [OK] Loaded Signal: {samples[s][1][0]}")
                     sig_hist.Scale(samples[s][2])
@@ -489,16 +565,37 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
                     sig_hist.Draw("hist same")
                     signal_hists.append(sig_hist)
 
+    if blind and not PNN:  ## basically plotting for mt_tot
+        print("hi, i am here")
+        signal_hists = []
+        for m in [1000]:
+            for s in [f'Signal_bbH_{m}', f'Signal_ggH_{m}']:
+                print(f"[INFO] Loading signal: {s}")
+                sig_hist = get_hist(f, region, samples[s][1][0])
+                print(samples[s][1][0], "check signal")
+                print(sig_hist)
+                if sig_hist:
+                    print(f"   [OK] Loaded Signal: {samples[s][1][0]}")
+                    sig_hist.Scale(samples[s][2])
+                    sig_hist.SetLineColor(sample_colors[samples[s][0]])
+                    sig_hist.SetLineWidth(2)
+                    sig_hist.SetLineStyle(1)
+                    sig_hist.SetFillStyle(0)
+                    sig_hist.Draw(" same hist ")
+                    signal_hists.append(sig_hist)
+                    for i in range(nbins):
+                        print(sig_hist.GetBinContent(i))
+                    print("i have drawn signal")
 
 
     ###### adjust
     stack.GetXaxis().SetTitle(title.split(";")[1])
     stack.GetYaxis().SetTitle(title.split(";")[2])
     title_text = ROOT.TLatex()
-    title_text.SetNDC(True)  # 使用归一化坐标
-    title_text.SetTextFont(42)  # 加粗字体
+    title_text.SetNDC(True)  
+    title_text.SetTextFont(42)  
     title_text.SetTextSize(0.045)
-    title_text.SetTextAlign(22)  # 居中+垂直居中
+    title_text.SetTextAlign(22)  
     
 
     title_text.DrawLatex(0.49, 0.96, f"{region}")
@@ -546,12 +643,22 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
                     break
     legend.Draw()
 
+    if blind and not PNN:        
+        for sig_hist in signal_hists:
+            for s_key, s_val in samples.items():
+                if s_val[1][0] in sig_hist.GetName():
+                    legend.AddEntry(sig_hist, s_val[0], "l")
+                    break
+    legend.Draw()
+
 
     #### draw pad2
     pad2.Clear()
 
 
     pad2.cd()
+    if xy_log_scale:  
+      pad2.SetLogx()
  
 ##### TGraph method
 
@@ -569,18 +676,25 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
 
         print(f"data error bar bin{i-1} in {region} region:")
 
+        if blind:
+            if "mt_tot" in var_key:
+                skip = 8
+            else:
+                skip = 6
+            if i >= skip:
+                continue
 
 
         if mc_val <= 0:
-            continue  # 跳过除以0的情况
+            continue  
         if data_val <= 0:
-            continue  # 跳过为0的数据点
+            continue  
 
-        # 计算 ratio 和误差
+
         x = data_hist.GetBinCenter(i)
         ex = 0
         ratio_val = (data_val - mc_val) / mc_val
-        err = 1. / math.sqrt(data_val)  # 或者你可以替换为别的定义
+        err = 1. / math.sqrt(data_val)  
         print("y_err:",err)
 
         x_vals.append(x)
@@ -600,7 +714,12 @@ def draw_plot(file_path, output_dir, region, var_key='m_fastmtt', log_scale=Fals
 
     # 样式设置
     g_ratio.GetXaxis().SetTitle(title.split(";")[1])
-    g_ratio.GetXaxis().SetLimits(data_hist.GetXaxis().GetXmin(), data_hist.GetXaxis().GetXmax())  
+
+    if xy_log_scale:
+      g_ratio.GetXaxis().SetLimits(data_hist.GetBinLowEdge(2), data_hist.GetXaxis().GetXmax())   ## only for 
+    else:
+      g_ratio.GetXaxis().SetLimits(data_hist.GetXaxis().GetXmin(), data_hist.GetXaxis().GetXmax())  
+   
     set_bottom_plot_general_style(g_ratio)
     ROOT.gStyle.SetEndErrorSize(0)
     g_ratio.Draw("AP")  
@@ -748,6 +867,7 @@ if __name__ == "__main__":
     statonly = False
     xy_log = False
     pnn_mode = False
+    blind = False
     
     if "--statonly" in sys.argv:
         statonly = True
@@ -762,7 +882,10 @@ if __name__ == "__main__":
         regions = pnn_regions
     if "--xy_log" in sys.argv:  
         xy_log = True
-        sys.argv.remove("--xy_log")    
+        sys.argv.remove("--xy_log")
+    if "--blind" in sys.argv:  
+        blind = True
+        sys.argv.remove("--blind")      
         
 
     
@@ -783,6 +906,6 @@ if __name__ == "__main__":
         for fpath in root_files:
             for region in regions:
                 # Draw linear scale plot
-                draw_plot(fpath, output_dir, region, var, log_scale=False, statonly=statonly,xy_log_scale=xy_log,PNN=pnn_mode)
+                draw_plot(fpath, output_dir, region, var, log_scale=False, statonly=statonly,xy_log_scale=xy_log,PNN=pnn_mode,blind=blind)
                 # Draw log scale plot
-                draw_plot(fpath, output_dir, region, var, log_scale=True, statonly=statonly,xy_log_scale=xy_log,PNN=pnn_mode)
+                draw_plot(fpath, output_dir, region, var, log_scale=True, statonly=statonly,xy_log_scale=xy_log,PNN=pnn_mode,blind=blind)
