@@ -20,7 +20,8 @@
 
 - **`plot_config_prefit_single_error_up_down.py`**  
   - 用途：绘制  单一系统误差**up & down  error band** 的脚本。
-  - 针对 JME POG的问题: Thanks for updating the handling of the uncertainties to follow the recommendations, having looked at the impact plots produced my only concern would be that in Fig 146 that the jesUncBBEC1 uncertainty is now the third ranked uncertainty in the fit. If you have plots showing up/down variations for that uncertainty in the relevant regions that would be useful to check to ensure that the effect is genuine and not due to statistical fluctuations. If it is a relatively quick thing to check then that would be great just to verify that everything is working correctly. If there are no issues there then I am happy to give the green light.
+  - 🔹 针对 JME POG 的问题 > *Thanks for updating the handling of the uncertainties to follow the recommendations, having looked at the impact plots produced my only concern would be that in Fig 146 that the jesUncBBEC1 uncertainty is now the third ranked uncertainty in the fit. If you have plots showing up/down variations for that uncertainty in the relevant regions that would be useful to check to ensure that the effect is genuine and not due to statistical fluctuations. If it is a relatively quick thing to check then that would be great just to verify that everything is working correctly. If there are no issues there then I am happy to give the green light.*
+
     
   - 图详见 https://hig-25006.web.cern.ch/CADI-HIG-25-006_Preapproval/PNGs_jesUncBBEC1_V12/
    
