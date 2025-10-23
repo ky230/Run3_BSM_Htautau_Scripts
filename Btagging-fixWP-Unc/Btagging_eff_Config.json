@@ -1,0 +1,33 @@
+{
+    "nameJSON": "btagging_effciency.json",
+    "sfhist": ["btag_eff_light","btag_eff_cjet","btag_eff_bjet"],
+    "Channels": ["em", "et", "mt", "tt"],
+    "files2022EE": {
+        "em": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_em_rerun.root"],
+        "et": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_et_rerun.root"],
+        "mt": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_mt_rerun.root"],
+        "tt": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_tt_rerun.root"]
+    },
+    "files2022postEE": {
+        "em": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_em_rerun.root"],
+        "et": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_et_rerun.root"],
+        "mt": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_mt_rerun.root"],
+        "tt": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_tt_rerun.root"]
+    },
+    "files2023preBPix": {
+        "em": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_em_rerun.root"],
+        "et": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_et_rerun.root"],
+        "mt": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_mt_rerun.root"],
+        "tt": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_tt_rerun.root"]
+    },
+    "files2023postBPix": {
+        "em": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_em_rerun.root"],
+        "et": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_et_rerun.root"],
+        "mt": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_mt_rerun.root"],
+        "tt": ["/eos/home-l/leyan/Htautau/Btagging-fixWP-Unc/ROOT_btagging_eff/btag_eff_dxc_2022EE_tt_rerun.root"]
+    },
+    
+    "years": ["2022EE","2022postEE","2023preBPix","2023BPix"],
+    "folders": ["2022EE","2022postEE","2023preBPix","2023BPix"],
+    "files": ["files2022EE","files2022postEE","files2023preBPix","files2023postBPix"]
+}
