@@ -73,27 +73,15 @@ $\epsilon[p_T, \eta, \text{flav}] = \frac{N_\text{b-tagged jets}[p_T, \eta, \tex
 
   多个wp的话就需要按照如下公式, 另外code逻辑需要改, 因为有超过1个eff需要计算
 
-  $$
-  w_{SF} =
+  $w_{SF} =
   \prod_{i \in \text{tagged at T WP}}
-  \frac{ SF^T_i[p_T, \eta, \text{flav}] \cdot \epsilon^T_i[p_T, \eta, \text{flav}] }
-      { \epsilon^T_i[p_T, \eta, \text{flav}] }
+  \frac{ SF^T_i[p_T, \eta, \text{flav}] \cdot \epsilon^T_i[p_T, \eta, \text{flav}] }{ \epsilon^T_i[p_T, \eta, \text{flav}] }
   \cdot
   \prod_{j \in \text{tagged at L WP but not T WP}}
-  \frac{
-  SF^L_j[p_T, \eta, \text{flav}] \cdot \epsilon^L_j[p_T, \eta, \text{flav}]
-  - SF^T_j[p_T, \eta, \text{flav}] \cdot \epsilon^T_j[p_T, \eta, \text{flav}]
-  }{
-  \epsilon^L_j[p_T, \eta, \text{flav}] - \epsilon^T_j[p_T, \eta, \text{flav}]
-  }
+  \frac{ SF^L_j[p_T, \eta, \text{flav}] \cdot \epsilon^L_j[p_T, \eta, \text{flav}] - SF^T_j[p_T, \eta, \text{flav}] \cdot \epsilon^T_j[p_T, \eta, \text{flav}] }{ \epsilon^L_j[p_T, \eta, \text{flav}] - \epsilon^T_j[p_T, \eta, \text{flav}] }
   \cdot
   \prod_{k \in \text{not tagged at L WP}}
-  \frac{
-  1 - SF^L_k[p_T, \eta, \text{flav}] \cdot \epsilon^L_k[p_T, \eta, \text{flav}]
-  }{
-  1 - \epsilon^L_k[p_T, \eta, \text{flav}]
-  }
-  $$
+  \frac{ 1 - SF^L_k[p_T, \eta, \text{flav}] \cdot \epsilon^L_k[p_T, \eta, \text{flav}] }{ 1 - \epsilon^L_k[p_T, \eta, \text{flav}] }$
 
 
 
